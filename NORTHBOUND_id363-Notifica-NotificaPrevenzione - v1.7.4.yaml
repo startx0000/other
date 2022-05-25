@@ -1,0 +1,3164 @@
+openapi: 3.0.0
+info:
+  title: 'Northbound API NotificaPrevenzione - servizio (Asincrono)'
+  version: '1.7.4'
+  description: >-
+    API relativa alla dispositiva di NotificaPrevenzione per far acquisire sul sistema FRMSRISK Convergente tutte le richieste/risposte, con esito positivo, elaborate dal servizio GestoreServizi (DFC) 
+    
+      NOTA: per una descrizione dettagliata dei tipi di dato specificati sul documento si rimanda al [seguente link](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#data-types)
+      
+      ULTIMA MODIFICA:  DB 1.18 [228943][R2P-22-0013] - Prevenzione Evolutive controlli frodi prodotti rateizzati da WEB, ovvero, aggiuntio i seguenti campi:
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxPlafondCFDay
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxPlafondCFMonth
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationOKKOCFDay
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationOKKOCFMonth
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationOKKOEmailDay
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationOKKOEmailMonth
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationOKKOShippingAddressDay
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationOKKOShippingAddressMonth
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationIpDay
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationIpMonth
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationIPForeignerDay
+          notifResponse.checkGridThresholds.checkGridProduct.checkMaxOperationIPForeignerMonth
+
+servers:
+  - url: https://api.example.com/v1
+
+paths:
+  '/clienti/frodi/notificheDFC':
+    post:
+      tags:
+        - ID363
+      description: >-
+        Notifica al sistema FRMSRISK Convergente tutte le richieste/risposte, con esito positivo, elaborate dal servizio GestoreServizi (DFC) ID271
+      parameters:
+        - name: sourceSystem
+          in: header
+          description: 'Nome di chi origina la chiamata (es. Channel Backend, SDP, CRM). Il valore viene aggiornato ad ogni passaggio inserendo il proprio identificativo. Viene aggiornata ad ogni passaggio tra sistemi.'
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 12
+        - name: channel
+          in: header
+          description: 'Identificativo canale digitale che ha generato inizialmente la chiamate (es. WEB, APP). L’informazione è passante e immutabile tra i vari sistemi.'
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: interactionDate-Date
+          in: header
+          description: 'E’ la data di quando l’utente ha effettuato l’interazione con il canale. Formato: YYYY-MM-DD'
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+        - name: interactionDate-Time
+          in: header
+          description: 'E’ l’ora di quando l’utente ha effettuato l’interazione con il canale. Formato: hh:mm:ss.SSS'
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{2}:\d{2}:\d{2}\.\d{3}$'
+        - name: sessionID
+          in: header
+          description: 'ID di Sessione del canale digitale. Identificativo di una sessione di lavoro aperta da un utente o processo applicativo (WEB)'
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: businessID
+          in: header
+          description: 'Identificativo univoco di un intero processo di business, costituito da un insieme di operazioni elementari che portano i partecipanti, in un’architettura distribuita, da uno stato globalmente consistente a un altro. Dal punto di vista di un osservatore esterno all’intera organizzazione (utente del processo), l’intera esecuzione è atomica, pur ammettendo stati interni localmente consistenti e non osservabili dall’esterno.'
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: messageID
+          in: header
+          description: 'Identificativo univoco del singolo messaggio inviato su un canale di comunicazione.'
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: transactionID
+          in: header
+          description: 'Identificativo univoco della singola transazione che coinvolge due partecipanti. Dal punto di vista di un osservatore esterno al dominio che include i soli partecipanti alla transazione, l’intera esecuzione è atomica, pur ammettendo stati interni localmente consistenti e non osservabili dall’esterno del dominio. Il termine transazione, nel contesto considerato di una architettura a servizi, va inteso in senso lato, includendo lo scambio di messaggi asincroni, correlati, atti a modificare lo stato del sistema.'
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: APIGW_requestID
+          description: 'Informazione generata e arricchita da APIGW. Non obbligatoria per i canali digitali.'
+          in: header
+          schema:
+            type: string
+        - name: resubmitted
+          description: 'Campo opzionale che indica che il messaggio è stato ri-sottomesso. Se presente è valorizzato come true.'
+          in: header
+          schema:
+            type: string
+            enum:
+              - true
+      responses:
+        '202':
+          description: >-
+            Richiesta presa in carico.
+          headers:
+            apigwRequestId:
+              schema:
+                type: string
+              description: >-
+                Informazione generata e arricchita da APIGW (ereditata dal campo APIGW_requestID dell’header http). Identificativo univoco della dispositiva.
+        '400':
+          description: >-
+            Richiesta errata. Il dato passato in input non è formattato correttamente e non può essere elaborato. 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '401':
+          description: >-
+            La richiesta richiede un'autenticazione dell’utente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '408':
+          description: >-
+            Richiesta scaduta. L’esecuzione del metodo non è terminata nei tempi stabiliti.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '500':
+          description: >-  
+            Errore generico non è stato possibile portare a termine l’esecuzione del metodo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '503':
+          description: >-  
+            Servizio non disponibile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+        '504':
+          description: >-  
+            Gateway timeout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckServiceMgmtRequest'
+        description: Oggetto di tipo CheckGridRequest contenente i dati da verificare
+        required: true
+components:
+  schemas:
+    CheckServiceMgmtRequest:
+      type: object
+      required:
+        - notifRequest
+      properties:
+        notifRequest:
+          $ref: '#/components/schemas/NotifRequest'
+        notifResponse:
+          $ref: '#/components/schemas/NotifResponse'
+      additionalProperties: false
+    NotifRequest:
+      type: object
+      description: >-
+        Contenuto della request elaborata dal gestoreServizi
+      required:
+        - processData
+      properties:
+        processData:
+          $ref: '#/components/schemas/ProcessData'
+        customerAccount:
+          $ref: '#/components/schemas/CustomerAccount'
+        billingAccount:
+          $ref: '#/components/schemas/BillingAccount'
+        saleChannel:
+          $ref: '#/components/schemas/SaleChannel'
+        shippingOption:
+          $ref: '#/components/schemas/ShippingOption'
+        shopping:
+          $ref: '#/components/schemas/Shopping'
+        device:
+          $ref: '#/components/schemas/Device'
+        productOrder:
+          $ref: '#/components/schemas/ProductOrder'
+      additionalProperties: false
+    ProcessData:
+      type: object
+      description: Dati di processo della request
+      required:
+        - subSystem
+        - cause
+      properties:
+        subSystem:
+          type: string
+          minLength: 0
+          maxLength: 12
+          description: SottoSistema da cui proviene la richiesta
+        cause:
+          type: string
+          minLength: 1
+          maxLength: 12
+          description: Codice operazione richiesta
+        causeMarket:
+          type: string
+          minLength: 1
+          maxLength: 12
+          description: Codice operazione commerciale
+        causeCartContainer:
+          $ref: '#/components/schemas/CauseCartContainer'
+      additionalProperties: false
+    CauseCartContainer:
+      type: array
+      description: Contenitore/carrello delle operazioni richieste
+      minItems: 1
+      items:
+        properties:
+          causeCartComponent:
+            $ref: '#/components/schemas/CauseCartComponent'
+        additionalProperties: false
+    CauseCartComponent:
+      type: object
+      required:
+        - cause
+      description: Operazione richiesta (carrello)
+      properties:
+        cause:
+          type: string
+          minLength: 1
+          maxLength: 12
+          description: Codice operazione richiesta
+      additionalProperties: false
+    CustomerAccount:
+      type: object
+      description: >-
+        Informazioni per l\'identificazione del cliente ed eventuale metodo di
+        pagamento
+      anyOf:
+        - required:
+            - customer
+        - required:
+            - customerProduct
+        - required:
+            - address
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+        customerProduct:
+          $ref: '#/components/schemas/CustomerProduct'
+        address:
+          $ref: '#/components/schemas/Address'
+        document:
+          $ref: '#/components/schemas/Document'
+      additionalProperties: false
+    Customer:
+      type: object
+      description: Informazioni del cliente
+      required:
+        - individual
+      properties:
+        individual:
+          $ref: '#/components/schemas/Individual'
+        referent:
+          $ref: '#/components/schemas/Referent'
+      additionalProperties: false
+    CustomerProduct:
+      type: object
+      description: Identificazione del cliente x prodotti
+      required:
+        - flgCreditBureau
+        - customerMark
+        - typeCustomer
+        - sex
+        - address
+        - city
+        - codeProvince
+        - dateActivePhoneNumber
+        - phonePrefixProduct
+        - phoneNumberProduct
+      anyOf:
+        - required:
+            - fiscalCodeProduct
+        - required:
+            - vatNumberProduct
+      properties:
+        flgCreditBureau:
+          type: string
+          pattern: '^([NYny])$'
+          minLength: 1
+          maxLength: 1
+          description: Consenso del cliente all’accesso ai dati di credito
+        customerMark:
+          type: string
+          minLength: 1
+          maxLength: 4
+          description: Marcaggio cliente
+        typeCustomer:
+          type: string
+          pattern: '^([FGDfgd])$'
+          minLength: 1
+          maxLength: 1
+          description: Natura giuridica del cliente
+        businessName:
+          type: string
+          minLength: 0
+          description: Ragione sociale del cliente
+        surname:
+          type: string
+          minLength: 0
+          maxLength: 56
+          description: Cognome
+        name:
+          type: string
+          minLength: 0
+          maxLength: 56
+          description: Nome
+        dateBirth:
+          type: string
+          description: Data nascita del cliente
+          format: date
+        codeBirthCity:
+          type: string
+          minLength: 0
+          maxLength: 4
+          description: Codice catastale comune di nascita del cliente
+        codeBirthProvince:
+          type: string
+          minLength: 0
+          maxLength: 2
+          description: Sigla provincia di nascita del cliente
+        sex:
+          type: string
+          pattern: '^([MFmf-])$'
+          minLength: 1
+          maxLength: 1
+          description: sesso
+        address:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Indirizzo - via
+        numberAddress:
+          type: string
+          minLength: 0
+          maxLength: 10
+          description: Indirizzo - civico
+        postalCode:
+          type: string
+          minLength: 0
+          maxLength: 5
+          description: Indirizzo - CAP
+        city:
+          type: string
+          minLength: 1
+          
+          description: Indirizzo - Città
+        codeProvince:
+          type: string
+          minLength: 1
+          maxLength: 2
+          description: Indirizzo – sigla provincia
+        dateActivePhoneNumber:
+          type: string
+          description: Data attivazione linea
+          format: date
+        statusPhoneNumberProduct:
+          type: string
+          minLength: 0
+          maxLength: 16
+          description: Stato della linea telefonica
+        remainingRateAmount:
+          type: number
+          minimum: 0
+          description: Importo delle rate residue ancora da estinguere da parte del cliente
+        remainingAmount:
+          type: number
+          minimum: 0
+          description: Importo di consistenza ancora da estinguere da parte del cliente
+        amount:
+          type: number
+          minimum: 0
+          description: Importo del prodotto
+        descProduct:
+          type: string
+          minLength: 0
+          maxLength: 100
+          description: Descrizione del prodotto
+        idProduct:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Identificativo prodotto
+        fiscalCodeProduct:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale riferito al prodotto
+        vatNumberProduct:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva riferito al prodotto
+        phonePrefixProduct:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 2
+          maxLength: 4
+          description: Linea riferita al prodotto
+        phoneNumberProduct:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 1
+          maxLength: 8
+          description: Linea riferita al prodotto
+      additionalProperties: false
+    Individual:
+      type: object
+      description: Informazioni identificative del cliente
+      anyOf:
+        - required:
+            - fiscalCode
+        - required:
+            - vatNumber
+      properties:
+        fiscalCode:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale
+        vatNumber:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva
+        tiid:
+          type: string
+          description: Telecomitalia Identification
+          minLength: 0
+          maxLength: 12
+        customerMark:
+          type: string
+          minLength: 1
+          maxLength: 4
+          description: Marcaggio cliente
+        customerSegment:
+          type: string
+          minLength: 1
+          description: Segmento cliente
+        typeCustomer:
+          type: string
+          pattern: '^([FGDfgd])$'
+          minLength: 1
+          maxLength: 1
+          description: Natura giuridica del cliente
+        flgCreditBureau:
+          type: string
+          pattern: '^([NYny])$'
+          minLength: 1
+          maxLength: 1
+          description: Consenso del cliente all’accesso ai dati di credito
+        serviceCode:
+          type: string
+          minLength: 1
+          description: Codice del servizio
+        customerCertification:
+          type: string
+          minLength: 1
+          description: Stato certificazione del cliente
+        phonePrefixImpianto:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 2
+          maxLength: 4
+          description: Distretto della linea telefonica impianto del cliente 
+        phoneNumberImpianto:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 1
+          maxLength: 8
+          description: Numero della Linea telefonica impianto del cliente 
+        flgEmployee:
+            type: string
+            pattern: '^([NYny])$'
+            minLength: 1
+            maxLength: 1
+            description: Flag che identifica se il cliente è anche dipendente
+        agingClient:
+          type: string
+          description: Anzianità del cliente TIM - formato data yyyy-MM-dd
+          format: date
+        partyIdentification:
+          $ref: '#/components/schemas/PartyIdentification'
+      additionalProperties: false
+    PartyIdentification:
+      type: object
+      description: Identificazione del cliente
+      properties:
+        phoneNumber:
+          type: string
+          minLength: 1
+          description: Linea contatto cliente
+        phonePrefixContact:
+          type: string
+          minLength: 1
+          description: Distretto della linea telefonica recapito del cliente 
+        phoneNumberContact:
+          type: string
+          minLength: 1
+          description: Numero della Linea telefonica recapito del cliente 
+        fiscalCodeLegal:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice Fiscale del referente legale
+        vatNumberLegal:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva del referente legale
+        surname:
+          type: string
+          minLength: 0
+          maxLength: 56
+          description: Cognome
+        name:
+          type: string
+          minLength: 0
+          maxLength: 56
+          description: Nome
+        documentNr:
+          type: string
+          minLength: 0
+          maxLength: 25
+          description: ID Documento
+        email:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: Indirizzo di posta eletrronica
+        login:
+          type: string
+          minLength: 0
+          maxLength: 80
+          description: Account di login
+        shippingAddress:
+          type: string
+          minLength: 0
+          maxLength: 100
+          description: Indirizzo di spedizione
+        flgActiveLine:
+          type: string
+          minLength: 1
+          description: Flag che contraddistingue i clienti in CB senza linee attive          
+        businessName:
+          type: string
+          minLength: 1
+          description: Ragione sociale del cliente
+        sex:
+          type: string
+          pattern: '^([MFmf-])$'
+          minLength: 1
+          maxLength: 1
+          description: sesso
+        birth:
+          $ref: '#/components/schemas/PIBirth'
+      additionalProperties: false
+    PIBirth:
+      type: object
+      description: Rifimenti nascita
+      properties:
+        date:
+          type: string
+          description: Data nascita del cliente - formato data yyyy-MM-dd
+          format: date
+        city:
+          type: string
+          minLength: 1
+          description: Descrizione del comune di nascita
+        abbrevProvince:
+          type: string
+          minLength: 1
+          description: Sigla della provincia di nascita
+        codeCountry:
+          type: string
+          minLength: 1
+          description: Codice catastale della nazione
+      additionalProperties: false
+    Referent:
+      type: object
+      description: Informazioni identificative del cliente
+      anyOf:
+        - required:
+            - fiscalCode
+        - required:
+            - vatNumber
+      properties:
+        surname:
+          type: string
+          minLength: 1
+          description: Cognome
+        name:
+          type: string
+          minLength: 1
+          description: Nome
+        fiscalCode:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale
+        vatNumber:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva
+        sex:
+          type: string
+          pattern: '^([MFmf-])$'
+          minLength: 1
+          maxLength: 1
+          description: sesso
+        email:
+          type: string
+          minLength: 1
+          description: Indirizzo di posta email
+        birth:
+          $ref: '#/components/schemas/RefBirth'
+      additionalProperties: false
+    RefBirth:
+      type: object
+      description: Rifimenti nascita
+      properties:
+        date:
+          type: string
+          description: Data nascita del cliente - formato data yyyy-MM-dd
+          format: date
+        city:
+          type: string
+          minLength: 1
+          description: Descrizione del comune di nascita
+        abbrevProvince:
+          type: string
+          minLength: 1
+          description: Sigla della provincia di nascita
+      additionalProperties: false
+    Document:
+      type: object
+      description: Rifimenti documentazione cliente
+      required:
+          - doc
+      properties:
+        doc:
+          $ref: '#/components/schemas/Doc'
+      additionalProperties: false
+    Doc:
+      type: object
+      description: Rifimenti documento
+      properties:
+        type:
+          type: string
+          minLength: 1
+          description: Tipo documento
+        identifier:
+          type: string
+          minLength: 1
+          description: ID documento
+        releaseAuthority:
+          type: string
+          minLength: 1
+          description: Ente che ha rilasciato il documento 
+        dateOfIssue:
+          type: string
+          description: Data emissione documento - formato data yyyy-MM-dd
+          format: date
+        expDate:
+          type: string
+          description: Data scadenza documento - formato data yyyy-MM-dd
+          format: date
+        codeLandRegistry:
+          type: string
+          minLength: 1
+          description: Codice catastale cittadinanza
+      additionalProperties: false
+    Address:
+      type: object
+      description: Indirizzi riferiti al cliente
+      anyOf:
+        - required:
+            - impianto
+        - required:
+            - residence
+        - required:
+            - shipping
+      properties:
+        impianto:
+          $ref: '#/components/schemas/AddressImpianto'
+        residence:
+          $ref: '#/components/schemas/AddressResidence'
+        shipping:
+          $ref: '#/components/schemas/AddressShipping'
+      additionalProperties: false
+    AddressImpianto:
+      type: object
+      description: Indirizzo del impianto del cliente
+      properties:
+        abbrevProvince:
+          type: string
+          minLength: 1
+          description: Sigla della Provincia
+        city:
+          type: string
+          minLength: 1
+          description: Descrizione del comune
+        cap:
+          type: string
+          minLength: 1
+          description: Codice CAP
+        partToponymy:
+          type: string
+          minLength: 1
+          description: Particella toponomastica
+        address:
+          type: string
+          minLength: 1
+          description: Descrizione del indirizzo
+        numberAddress:
+          type: string
+          minLength: 1
+          description: Numero civico indirizzo
+        building:
+          type: string
+          minLength: 1
+          description: Complesso
+        staircase:
+          type: string
+          minLength: 1
+          description: Scala
+        floor:
+          type: string
+          minLength: 1
+          description: Piano
+        indoor:
+          type: string
+          minLength: 1
+          description: Interno
+      additionalProperties: false
+    AddressResidence:
+      type: object
+      description: Indirizzo di residenza del cliente
+      properties:
+        abbrevProvince:
+          type: string
+          minLength: 1
+          description: Sigla della Provincia
+        city:
+          type: string
+          minLength: 1
+          description: Descrizione del comune
+        cap:
+          type: string
+          minLength: 1
+          description: Codice CAP
+        partToponymy:
+          type: string
+          minLength: 1
+          description: Particella toponomastica
+        address:
+          type: string
+          minLength: 1
+          description: Descrizione del indirizzo
+        numberAddress:
+          type: string
+          minLength: 1
+          description: Numero civico indirizzo
+        building:
+          type: string
+          minLength: 1
+          description: Complesso
+        staircase:
+          type: string
+          minLength: 1
+          description: Scala
+        floor:
+          type: string
+          minLength: 1
+          description: Piano
+        indoor:
+          type: string
+          minLength: 1
+          description: Interno
+      additionalProperties: false
+    AddressShipping:
+      type: object
+      description: Indirizzo di spedizione del cliente
+      properties:
+        abbrevProvince:
+          type: string
+          minLength: 1
+          description: Sigla della Provincia
+        city:
+          type: string
+          minLength: 1
+          description: Descrizione del comune
+        cap:
+          type: string
+          minLength: 1
+          description: Codice CAP
+        partToponymy:
+          type: string
+          minLength: 1
+          description: Particella toponomastica
+        address:
+          type: string
+          minLength: 1
+          description: Descrizione del indirizzo
+        numberAddress:
+          type: string
+          minLength: 1
+          description: Numero civico indirizzo
+        building:
+          type: string
+          minLength: 1
+          description: Complesso
+        staircase:
+          type: string
+          minLength: 1
+          description: Scala
+        floor:
+          type: string
+          minLength: 1
+          description: Piano
+        indoor:
+          type: string
+          minLength: 1
+          description: Interno
+      additionalProperties: false
+    BillingAccount:
+      type: object
+      description: Caratterizzazione della modalità di acquisto
+      properties:
+        paymentType:
+          type: string
+          minLength: 1
+          description: Identificativo del tipo di pagamento
+        creditCard:
+          $ref: '#/components/schemas/CreditCard'
+        payPal:
+          $ref: '#/components/schemas/PayPal'
+        bankAccount:
+          $ref: '#/components/schemas/BankAccount'
+        satisPay:
+          $ref: '#/components/schemas/SatisPay'         
+      additionalProperties: false
+    CreditCard:
+      type: object
+      required:
+        - merID
+      oneOf:
+        - allOf:
+            - required:
+                - merCustID
+                - billingID
+        - required:
+            - mdpKey
+      description: Caratterizzazione della CdC
+      properties:
+        merID:
+          type: string
+          minLength: 1
+          description: Identificativo del merchant (categoria merceologica)
+        merCustID:
+          type: string
+          minLength: 1
+          description: Identificativo del cliente per il wallet
+        billingID:
+          type: string
+          minLength: 1
+          description: Modalità di Pagamento Key (trascodifica della CdC)
+        mdpKey:
+          type: string
+          minLength: 1
+          description: Modalità di Pagamento Key (trascodifica della CdC)
+        bin:
+          type: string
+          pattern: '^[A-Za-z0-9]*$'
+          minLength: 1
+          maxLength: 10
+          description: Bank Identification Number
+      additionalProperties: false
+    PayPal:
+      type: object
+      required:
+        - idPayPal
+      description: Caratterizzazione del pagamento tramite PayPal 
+      properties:
+        idPayPal:
+          type: string
+          minLength: 1
+          description: Identificativo di pagamento tramite PayPal
+      additionalProperties: false
+    BankAccount:
+      type: object
+      required:
+        - iban
+      description: Caratterizzazione del pagamento tramite conto corrente IBAN
+      properties:
+        iban:
+          type: string
+          minLength: 1
+          description: Identificativo IBAN del conto corrente
+      additionalProperties: false
+    SatisPay:
+      type: object
+      required:
+        - idSatisPay
+      description: Caratterizzazione del pagamento tramite SatisPay 
+      properties:
+        idSatisPay:
+          type: string
+          minLength: 1
+          description: Identificativo di pagamento tramite SatisPay
+      additionalProperties: false
+    SaleChannel:
+      type: object
+      description: Riferimenti del canale di vendita
+      properties:
+        subChannel:
+          type: string
+          minLength: 1
+          description: subChannel
+        modL4:
+          type: string
+          minLength: 1
+          description: Modulo L4
+        modL7:
+          type: string
+          minLength: 1
+          description: Modulo L7
+        mktChannel:
+          type: string
+          minLength: 1
+          description: Canali commerciali
+      additionalProperties: false
+    ShippingOption:
+      type: object
+      description: Riferimenti del canale di vendita
+      properties:
+        shippingType:
+          type: string
+          minLength: 1
+          description: Tipologia della spedizione
+        amount:
+          type: number
+          minimum: 0
+          description: Importo della spedizione
+      additionalProperties: false
+    Shopping:
+      type: object
+      description: Riferimenti del carrello
+      properties:
+        idShopping:
+          type: string
+          minLength: 1
+      additionalProperties: false
+    Device:
+      type: object
+      description: Riferimenti del dispositivo
+      properties:
+        idDevice:
+          type: string
+          minLength: 1
+          description: ID Dispositivo
+        networkDevice:
+          type: string
+          minLength: 1
+          description: Dispositivo Rete
+        typeDevice:
+          type: string
+          minLength: 1
+          description: Tipo Dispositivo
+        ipDevice:
+          type: string
+          minLength: 1
+          description: IP Dispositivo
+        ip2cli:
+          type: string
+          minLength: 1
+          description: IP2CLI Dispositivo
+      additionalProperties: false
+    ProductOrder:
+      type: object
+      description: Caratterizzazione della richiesta ricarica/offerte/prodotti
+      minProperties: 1
+      properties:
+        recharge:
+          $ref: '#/components/schemas/Recharge'
+        rechargeAut:
+          $ref: '#/components/schemas/RechargeAut'
+        offerContainer:
+          $ref: '#/components/schemas/OfferContainer'
+        offerALMNP:
+          $ref: '#/components/schemas/OfferALMNP'
+        product:
+          $ref: '#/components/schemas/Product'
+        offerBusiness:
+          $ref: '#/components/schemas/OfferBusiness'
+        debitCdcEcommerce:
+          $ref: '#/components/schemas/DebitCdcEcommerce'
+        accBusiness:
+          $ref: '#/components/schemas/AccBusiness'          
+        offerLever:
+          $ref: '#/components/schemas/OfferLever'
+        offerWallet:
+          $ref: '#/components/schemas/OfferWallet'
+      additionalProperties: false
+    Recharge:
+      type: object
+      required:
+        - fiscalCodeRecharge
+        - phoneNumberRecharge
+        - amount
+      properties:
+        fiscalCodeRecharge:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale della linea di ricarica
+        vatNumberRecharge:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva del destinatario della ricarica
+        phoneNumberRecharge:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 8
+          maxLength: 12
+          description: Linea di ricarica
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          description: Valore economico della ricarica
+        remainingCredit:
+          type: number
+          description: Valore riferito al credito residuo del cliente
+      additionalProperties: false
+    RechargeAut:
+      type: object
+      required:
+        - phoneNumberRecharge
+      properties:
+        fiscalCodeRecharge:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale della linea di ricarica
+        vatNumberRecharge:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva del destinatario della ricarica
+        phoneNumberRecharge:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 8
+          maxLength: 12
+          description: Linea di ricarica
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          description: Valore economico della ricarica
+        idBundle:
+          type: string
+          minLength: 1
+          description: >- 
+            Identificativo del bundle che caratterizza la GIGA Family cui
+            appartiene la linea ricarica
+        idNetwork:
+          type: string
+          minLength: 1
+          description: >- 
+            Identificativo della network che caratterizza la GIGA Family cui
+            appartiene la linea ricarica
+        plafondDay:
+          type: number
+          minimum: 0
+          description: Plafond giornaliero della ricarica
+        plafondMonth:
+          type: number
+          minimum: 0
+          description: Plafond mensile della ricarica
+      additionalProperties: false
+    OfferContainer:
+      type: array
+      description: Contenitore delle offerte (carte servizi)
+      minItems: 0
+      items:
+        properties:
+          offerComponent:
+            $ref: '#/components/schemas/OfferComponent'
+        additionalProperties: false
+    OfferComponent:
+      type: object
+      required:
+        - phoneNumber
+        - idOffer
+        - amount
+      description: Contenitore delle offerte
+      properties:
+        phoneNumber:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 8
+          maxLength: 12
+          description: Linea di ricarica
+        idOffer:
+          type: string
+          minLength: 0
+          maxLength: 255
+          description: Identificativo offerta
+        offerDescription:
+          type: string
+          minLength: 0
+          maxLength: 512
+          description: Descrizione offerta
+        amount:
+          type: number
+          minimum: 0
+          description: Valore economico offerta
+      additionalProperties: false
+    OfferALMNP:
+      type: object
+      anyOf:
+        - required:
+            - fiscalCode
+        - required:
+            - vatNumber
+      description: Offerte di tipo AL/MNP
+      properties:
+        fiscalCode:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale
+        vatNumber:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva
+        userType:
+          type: string
+          minLength: 1
+          description: >-
+            Identifica la tipologia dell’utenza che effettua la richiesta 
+        email:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: Indirizzo di posta elettronica
+        shippingAddress:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Indirizzo di spedizione
+      additionalProperties: false
+    Product:
+      type: object
+      description: Caratterizzazione dei prodotti
+      required:
+        - fiscalCodeProduct
+      anyOf:
+        - required:
+            - productContainer
+        - required:
+            - productItem
+      properties:
+        fiscalCodeProduct:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice fiscale riferito al prodotto
+        vatNumberProduct:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita Iva riferito al prodotto
+        userType:
+          type: string
+          minLength: 1
+          description: >-
+            Identifica la tipologia dell’utenza che effettua la richiesta 
+        email:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: Indirizzo di posta elettronica
+        productContainer:
+          $ref: '#/components/schemas/ProductContainer'
+        productItem:
+          $ref: '#/components/schemas/ProductItem'
+      additionalProperties: false
+    ProductContainer:
+      type: array
+      description: Contenitore dei prodotti
+      minItems: 0
+      items:
+        properties:
+          productComponent:
+            $ref: '#/components/schemas/ProductComponent'
+        additionalProperties: false
+    ProductComponent:
+      type: object
+      required:
+        - threshold
+        - elapsedTime
+      description: Contenitore dei prodotti
+      properties:
+        phoneNumberProduct:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 8
+          maxLength: 12
+          description: Linea riferita al prodotto
+        idProduct:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Identificativo prodotto
+        productType:
+          type: string
+          pattern: '^[AaBb]*$'
+          minLength: 1
+          maxLength: 1
+          description: Fascia prodotto
+        paymentType:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: modalità di pagamento
+        threshold:
+          type: number
+          minimum: 1
+          description: Valore Soglia
+        elapsedTime:
+          type: number
+          minimum: 1
+          description: Perido di Verifica espresso in ore
+        marketingType:
+          type: string
+          minLength: 1
+          description: >- 
+            Identifica la tipologia di commercializzazione utilizzata
+      additionalProperties: false
+    ProductItem:
+      type: object
+      description: Caratterizzazione dei prodotti a carrello
+      required:
+        - productItemContainer
+      properties:
+        productItemContainer:
+          $ref: '#/components/schemas/ProductItemContainer'
+      additionalProperties: false
+    ProductItemContainer:
+      type: array
+      description: Contenitore dei prodotti
+      minItems: 1
+      items:
+        properties:
+          productItemComponent:
+            $ref: '#/components/schemas/ProductItemComponent'
+        additionalProperties: false
+    ProductItemComponent:
+      type: object
+      required:
+        - idProduct
+      description: Contenitore dei prodotti
+      properties:
+        idProduct:
+          type: string
+          minLength: 1
+          description: NMU del prodotto
+        productType:
+          type: string
+          pattern: '^[AaBb]*$'
+          minLength: 1
+          maxLength: 1
+          description: Fascia prodotto
+        amount:
+          type: number
+          minimum: 0
+          description: Valore economico del prodotto
+        quantity:
+          type: number
+          minimum: 1
+          description: Quantità del prodotto
+        productDescription:
+          type: string
+          minLength: 1
+          description: Descrizione del prodotto
+        idRateOffer:
+          type: string
+          minLength: 1
+          description: Identificativo dell’offerta di finanziamento
+        entryTicket:
+          type: number
+          minimum: 0
+          description: Entry ticket su singolo prodotto
+        rateNumber:
+          type: number
+          minimum: 0
+          description: Numero rate previste per l’offerta di finanziamento
+        rateDescription:
+          type: string
+          minLength: 1
+          description: Descrizione breve dell’offerta di finaziamento
+      additionalProperties: false
+    OfferBusiness:
+      type: object
+      anyOf:
+        - required:
+            - fiscalCode
+        - required:
+            - vatNumber
+      properties:
+        fiscalCode:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice Fiscale business
+        vatNumber:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita IVA business
+      additionalProperties: false
+    DebitCdcEcommerce:
+      type: object
+      anyOf:
+        - required:
+            - fiscalCode
+        - required:
+            - vatNumber
+      properties:
+        fiscalCode:
+          type: string
+          pattern: '^[A-Za-z0-9]{16}$|^[0-9]{11}$'
+          description: Codice Fiscale business
+        vatNumber:
+          type: string
+          pattern: '^[0-9]{11}$'
+          description: Partita IVA business
+      additionalProperties: false
+    AccBusiness:
+      type: object
+      required:
+        - user
+        - phoneNumber
+        - amount
+      properties:
+        user:
+          type: string
+          minLength: 1
+          description: Identificativo operatore
+        phoneNumber:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 8
+          maxLength: 12
+          description: Linea accredito
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          description: Importo accredito
+      additionalProperties: false
+    OfferLever:
+      type: object
+      properties:
+        listFees:
+          type: string
+          minLength: 1
+          description: Lista canoni
+        nSimUnica:
+          type: number
+          minimum: 1
+          description: Numero di SIM Unica
+        amountService:
+          type: number
+          minimum: 1
+          description: Importo complessivo del servizio
+        offerRecharge:
+          type: string
+          pattern: '^([NYny])$'
+          minLength: 1
+          maxLength: 1
+          description: Indica se offerta richiesta è ricaricabile
+        productList:
+          type: string
+          minLength: 1
+          description: Lista dei prodotti associati al servizio\linea
+        idOffer:
+          type: string
+          minLength: 1
+          description: Identificativo offerta          
+      additionalProperties: false
+    OfferWallet:
+      type: object
+      description: Caratterizzazione delle offerte di intrattenimento a carrello
+      required:
+        - offerWalletContainer
+      properties:
+        userType:
+          type: string
+          minLength: 1
+          description: 'Identifica la tipologia dell’utenza che effettua la richiesta'
+        email:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: Indirizzo di posta elettronica
+        offerWalletContainer:
+          $ref: '#/components/schemas/OfferWalletContainer'
+      additionalProperties: false
+    OfferWalletContainer:
+      type: array
+      description: Contenitore delle offerte di intrattenimento
+      minItems: 1
+      items:
+        properties:
+          offerWalletComponent:
+            $ref: '#/components/schemas/OfferWalletComponent'
+        additionalProperties: false
+    OfferWalletComponent:
+      type: object
+      required:
+        - idOffer
+      description: Offerte di intrattenimento
+      properties:
+        idOffer:
+          type: string
+          minLength: 1
+          description: Identificativo dell’offerta commerciale
+        offerDescription:
+          type: string
+          minLength: 1
+          description: Descrizione dell’offerta commerciale
+        amount:
+          type: number
+          minimum: 0
+          description: Valore economico dell’offerta commerciale
+      additionalProperties: false
+    NotifResponse:
+      type: object
+      description: >-
+        Contenuto della response elaborata dal gestoreServizi
+      required:
+        - httpResponse
+        - processData
+      properties:
+        httpResponse:
+          $ref: '#/components/schemas/HttpNotifResponse'
+        processData:
+          $ref: '#/components/schemas/ProcessDataForNotifResponse'
+        billingAccount:
+          $ref: '#/components/schemas/BillingAccountForNotifResponse'
+        credit:
+          $ref: '#/components/schemas/CreditForNotifResponse'
+        checkGridThresholds:
+          $ref: '#/components/schemas/CheckGridThresholdsNotifResponse'
+        checkFraud:
+          $ref: '#/components/schemas/CheckFraudNotifResponse'
+        checkCredit:
+          $ref: '#/components/schemas/CheckCreditNotifResponse'
+        checkAdvanceRisk:
+          $ref: '#/components/schemas/CheckAdvanceRiskNotifResponse'
+        checkDfc:
+          $ref: '#/components/schemas/CheckDfcNotifResponse'
+      additionalProperties: false
+    HttpNotifResponse:
+      type: object
+      description: Dati di processo della response
+      required:
+        - httpReturnCode
+      properties:
+        httpReturnCode:
+          type: string
+          minLength: 1
+          description: >-
+            Rappresenta l’esito http dell’intero processo antifrode, riassume
+            la totalità dei controlli riscontrati
+      additionalProperties: false
+    ProcessDataForNotifResponse:
+      type: object
+      description: Dati di processo della response
+      required:
+        - returnCode
+        - returnDescription
+        - interactionDate
+      properties:
+        returnCode:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Codice di ritorno dell’operazione che identifica l’esito dei
+            controlli formali e di congruenza applicati sui campi della
+            richiesta
+        returnDescription:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: Descrizione del codice di ritorno dell'operazione
+        interactionDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}$'
+          description: Data di lavorazione della richiesta da parte del Provider
+      additionalProperties: false
+    CheckGridThresholdsNotifResponse:
+      type: object
+      minProperties: 1
+      properties:
+        checkGridRecharge:
+          $ref: '#/components/schemas/CheckGridRecharge'
+        checkGridRechargeAut:
+          $ref: '#/components/schemas/CheckGridRechargeAut'
+        checkGridOffer:
+          $ref: '#/components/schemas/CheckGridOffer'
+        checkGridOfferALMNP:
+          $ref: '#/components/schemas/CheckGridOfferALMNP'
+        checkGridOfferALMNPIncThreshold:
+          $ref: '#/components/schemas/CheckGridOfferALMNPIncThreshold'
+        checkGridProduct:
+          $ref: '#/components/schemas/CheckGridProduct'
+        checkGridOfferBusiness:
+          $ref: '#/components/schemas/CheckGridOfferBusiness'
+        checkGridBilling:
+          $ref: '#/components/schemas/CheckGridBilling'
+        checkGridDebitCdcEcommerce:
+          $ref: '#/components/schemas/CheckGridDebitCdcEcommerce'
+        checkGridAccBusiness:
+          $ref: '#/components/schemas/CheckGridAccBusiness'          
+        checkGridProductGrid:
+          $ref: '#/components/schemas/CheckGridProductGrid'
+      additionalProperties: false
+    CheckGridRecharge:
+      type: object
+      description: Dettaglio controlli di griglie x ricariche
+      required:
+        - checkMaxOperationPhoneNumber
+        - checkMaxPlafondPhoneNumber
+        - checkMaxOperationCF
+        - checkMaxPlafondCFForeigner
+        - checkMaxOperationCDC
+        - checkMaxOperationCDCForeigner
+        - checkMaxPlafondCDCPrepaid
+        - checkMaxPlafondCDC
+        - checkMaxPlafondCDCForeigner
+        - checkMaxOperationPayPal
+        - checkMaxPlafondPayPal        
+        - checkMaxPlafondSatisPay
+        - checkMaxOperationSatisPay
+        - checkMaxPlafondCap
+      properties:
+        checkMaxOperationPhoneNumber:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica  in 
+            funzione del Max operazioni stesso numero, applicato sul 
+            corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondPhoneNumber:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Plafond Max € stesso numero, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCF:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Max operazioni stesso CF, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Plafond Max € stesso CF Estero , applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDC:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Max operazioni stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Max operazioni stessa CdC estera, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Plafond Max € su CdC Prepagate, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCDC:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Plafond Max € x CdC al mese, applicato sul
+            corrispondente  campo valorizzato nella richiesta
+        checkMaxPlafondCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Plafond Max € per CdC Estera al mese, applicato sul
+            corrispondente  campo valorizzato nella richiesta
+        checkMaxOperationPayPal:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in funzione
+            del Max operazioni stessa PayPal, applicato sul corrispondente campo 
+            valorizzato nella richiesta
+        checkMaxPlafondPayPal:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in funzione
+            del Plafond Max € x PayPal al mese, applicato sul corrispondente 
+            campo valorizzato nella richiesta            
+        checkMaxPlafondSatisPay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Plafond Max € x SatisPay al mese, applicato sul
+            corrispondente  campo valorizzato nella richiesta
+        checkMaxOperationSatisPay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in
+            funzione del Max operazioni stessa SatisPay, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCap:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica in funzione del
+            Plafond Max € per Cap, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo ricariche
+      additionalProperties: false
+    CheckGridRechargeAut:
+      type: object
+      minProperties: 1
+      properties:
+        checkGridRechargeAutActive:
+          $ref: '#/components/schemas/CheckGridRechargeAutActive'
+        checkGridRechargeAutEvent:
+          $ref: '#/components/schemas/CheckGridRechargeAutEvent'
+      additionalProperties: false
+    CheckGridRechargeAutActive:
+      type: object
+      description: Dettaglio controlli di griglie x ricarica automatica attivazione
+      required:
+        - checkCDCForeigner
+        - checkCDCPrepaid
+      properties:
+        checkCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica
+            attivazione in funzione CdC estera, applicato sul corrispondente
+            campo valorizzato nella richiesta
+        checkCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica
+            attivazione in funzione CdC Prepagate, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo ricariche
+      additionalProperties: false
+    CheckGridRechargeAutEvent:
+      type: object
+      description: Dettaglio controlli di griglie x ricarica automatica evento
+      required:
+        - checkMaxPlafondPhoneNumberDay
+        - checkMaxPlafondPhoneNumberMonth
+        - checkFamilyMaxPlafondPhoneNumberMonth
+        - checkMaxPlafondPhoneNumberSatispayDay
+        - checkMaxPlafondPhoneNumberSatispayMonth
+      properties:
+        checkMaxPlafondPhoneNumberDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica
+            in funzione del Plafond Max € stesso numero al giorno, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondPhoneNumberMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica
+            in funzione del Plafond Max € stesso numero al mese, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkFamilyMaxPlafondPhoneNumberMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica
+            family evento in funzione del Plafond Max € stesso numero al mese,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondPhoneNumberSatispayDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica evento in funzione del Plafond Max € stesso numero con CdC x satispay al giorno, applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondPhoneNumberSatispayMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su ricarica automatica evento in funzione del Plafond Max € stesso numero con CdC x satispay al mese, applicato sul corrispondente campo valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo ricariche
+      additionalProperties: false
+    CheckGridOffer:
+      type: object
+      description: Dettaglio controlli di griglia x offerte
+      required:
+        - checkMaxOperationPhoneNumberOffer
+        - checkMaxOperationCDC
+        - checkMaxOperationCDCOffer
+        - checkMaxOperationCDCForeigner
+        - checkMaxPlafondCDC
+      properties:
+        checkMaxOperationPhoneNumberOffer:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS (Carte Servizi)
+            in  funzione del Max operazioni stesso numero/stesso codice
+            offerta,  applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxOperationCDC:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS in funzione del
+            Max operazioni stessa CdC, applicato sul corrispondente campo
+            valorizzato nella richiesta
+        checkMaxOperationCDCOffer:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS in funzione del
+            Max operazioni stessa CdC stesso codice offerta, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS in funzione del
+            Max operazioni stessa CdC estera, applicato sul corrispondente campo
+            valorizzato nella richiesta
+        checkMaxPlafondCDC:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS in funzione del
+            Plafond Max € per CdC al mese, applicato sul corrispondente campo
+            valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo offerte
+      additionalProperties: false
+    CheckGridOfferALMNP:
+      type: object
+      description: Dettaglio controlli di griglia x offerte
+      required:
+        - checkMaxPlafondCFClientDay
+        - checkMaxPlafondCFProspectDay
+        - checkMaxPlafondCFClientMonth
+        - checkMaxPlafondCFProspectMonth
+        - checkMaxOperationCDC
+        - checkMaxOperationPayPal
+        - checkMaxCFClientCDCDay
+        - checkMaxCFProspectCDCDay
+        - checkMaxCFClientCDCMonth
+        - checkMaxCFProspectCDCMonth
+        - checkMaxOperationOKKOCFDay
+        - checkMaxOperationOKKOCFMonth
+        - checkMaxOperationOKKOEmailDay
+        - checkMaxOperationOKKOEmailMonth
+        - checkMaxOperationOKKOShippingAddressDay
+        - checkMaxOperationOKKOShippingAddressMonth
+        - checkMaxCFPayPalDay
+        - checkMaxCFPayPalMonth
+        - checkMaxSIMWebCFMonth
+        - checkMaxSIMWebCFDay
+        - checkCDCForeigner
+        - checkCDCPrepaid        
+      properties:
+        checkMaxPlafondCFClientDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Plafond Max € stesso CF Cliente al giorno, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFProspectDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Plafond Max € stesso CF Prospect al giorno, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFClientMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Plafond Max € stesso CF Cliente al mese, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFProspectMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Plafond Max € stesso CF Prospect al mese, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDC:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationPayPal:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni stessa PayPal, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFClientCDCDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max CF Cliente al giorno stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFProspectCDCDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max CF Prospect al giorno stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFClientCDCMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max CF Cliente al mese stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFProspectCDCMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max CF Prospect al mese stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOCFDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni OK/KO al giorno stesso CF, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOCFMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni OK/KO al mese stesso CF, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOEmailDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni OK/KO al giorno stessa email,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOEmailMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni OK/KO al mese stessa email,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOShippingAddressDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max operazioni OK/KO al giorno stesso indirizzo
+            spedizione, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxOperationOKKOShippingAddressMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in 
+            funzione del Max operazioni OK/KO al mese stesso indirizzo
+            spedizione, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxCFPayPalDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max CF al giorno stessa PayPal, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFPayPalMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max CF al mese stessa PayPal, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxSIMWebCFMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max numero SIM attivabili da web stesso CF al mese, 
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxSIMWebCFDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in
+            funzione del Max numero SIM attivabili da web stesso CF al giorno,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in funzione
+            CdC estera, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su CS AL/MNP in funzione
+            CdC Prepagate, applicato sul corrispondente campo valorizzato nella
+            richiesta            
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo offerte
+      additionalProperties: false
+    CheckGridOfferALMNPIncThreshold:
+      type: object
+      description: Dettaglio controlli di griglia x offerte di incremento di soglia
+      required:
+        - checkMaxIncreaseThresholdCF
+      properties:
+        checkMaxIncreaseThresholdCF:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia u CS AL/MNP in
+            funzione del Max numero di incrementi di soglia stesso CF,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo incremento di soglia
+      additionalProperties: false
+    CheckGridProduct:
+      type: object
+      description: Dettaglio controlli di griglia x prodotti
+      required:
+        - checkAllProduct
+        - checkMaxPlafondCFDay
+        - checkMaxPlafondCFMonth
+        - checkMaxOperationOKKOCFDay
+        - checkMaxOperationOKKOCFMonth
+        - checkMaxOperationOKKOEmailDay
+        - checkMaxOperationOKKOEmailMonth
+        - checkMaxOperationOKKOShippingAddressDay
+        - checkMaxOperationOKKOShippingAddressMonth
+        - checkMaxOperationIpDay
+        - checkMaxOperationIpMonth
+        - checkMaxOperationIPForeignerDay
+        - checkMaxOperationIPForeignerMonth
+      properties:
+        checkAllProduct:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia sui Prodotti. Check
+            riassuntivo sui prodotti, l’esito rappresenta or logico di tutti i
+            controlli scattati 
+        checkMaxPlafondCFDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Plafond Max € stesso CF al giorno, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Plafond Max € stesso CF al mese, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOCFDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al giorno stesso CF, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOCFMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al mese stesso CF, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOEmailDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al giorno stessa email, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOEmailMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al mese stessa email, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOShippingAddressDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al giorno stesso indirizzo
+            spedizione, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxOperationOKKOShippingAddressMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in 
+            funzione del Max operazioni OK/KO al mese stesso indirizzo
+            spedizione, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxOperationIpDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti in funzione
+            del Max operazioni stesso IP al giorno, applicato sul corrispondente
+            campo valorizzato nella richiesta
+        checkMaxOperationIpMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti in funzione
+            del Max operazioni stesso IP al mese, applicato sul corrispondente
+            campo valorizzato nella richiesta
+        checkMaxOperationIPForeignerDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti in funzione
+            del Max operazioni stesso IP / Paese estero al giorno, applicato 
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationIPForeignerMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti in funzione
+            del Max operazioni stesso IP / Paese estero al mese, applicato 
+            sul corrispondente campo valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo offerte
+      additionalProperties: false
+    CheckGridOfferBusiness:
+      type: object
+      description: Dettaglio controlli di griglie x offerte business
+      required:
+        - checkCDCForeigner
+        - checkCDCPrepaid
+      properties:
+        checkCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su offerta business in
+            funzione CdC estera, applicato sul corrispondente campo
+            valorizzato nella richiesta
+        checkCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su offerta business in
+            funzione CdC Prepagate, applicato sul corrispondente campo
+            valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo offerte business
+      additionalProperties: false
+    CheckGridBilling:
+      type: object
+      description: Dettaglio controlli di griglie in funzione della modalità di pagamento (CdC), dipende direttamente dalla presenza nella request della sezione billingAccount
+      required:
+        - checkCDCForeigner
+        - checkCDCPrepaid
+      properties:
+        checkCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su qualsiasi tipologia
+            di ricarica/offerta/prodotto in funzione CdC estera, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su qualsiasi tipologia
+            di ricarica/offerta/prodotto in funzione CdC Prepagate, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo offerte business
+      additionalProperties: false
+    CheckGridDebitCdcEcommerce:
+      type: object
+      description: Dettaglio controlli di griglie in funzione della modalità di pagamento (CdC), dipende direttamente dalla presenza nella request della sezione billingAccount
+      required:
+        - checkCDCForeigner
+        - checkCDCPrepaid
+        - checkMaxOperationCDCDay
+        - checkMaxOperationCDCMonth
+        - checkMaxCDCCFDay
+        - checkMaxCDCCFMonth
+      properties:
+        checkCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su qualsiasi tipologia
+            di ricarica/offerta/prodotto in funzione CdC estera, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su qualsiasi tipologia
+            di ricarica/offerta/prodotto in funzione CdC Prepagate, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDCDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su domiciliazione CdC
+            Ecommerce in funzione del Max operazioni stessa CdC al giorno,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDCMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+           Identifica l’esito del controllo di griglia su domiciliazione CdC
+           Ecommerce in funzione del Max operazioni stessa CdC al mese,
+           applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxCDCCFDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su  domiciliazione CdC
+            Ecommerce in funzione del Max CdC stesso CF al giorno, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxCDCCFMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su  domiciliazione CdC
+            Ecommerce in funzione del Max CdC stesso CF al mese, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo domiciliazione cdc su ecommerce
+      additionalProperties: false
+    CheckGridAccBusiness:
+      type: object
+      description: Dettaglio controlli di griglie x PCN Accrediti Business
+      required:
+        - checkMaxPlafondUserDay
+        - checkMaxPlafondPhoneNumberMonth
+        - checkMaxOperationPhoneNumberMonth
+        - checkMaxOperationUserDay
+      properties:
+        checkMaxPlafondUserDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su PCN accrediti
+            Business in funzione del Plafond Max € stesso operatore al giorno,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondPhoneNumberMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su PCN accrediti
+            Business in funzione del Plafond Max € stesso numero al mese,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationPhoneNumberMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su PCN accrediti
+            Business in funzione del Max operazioni di accredito stesso numero
+            al mese, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxOperationUserDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su PCN accrediti
+            Business in funzione del Max operazioni di accredito stesso
+            operatore al giorno, applicato sul corrispondente campo 
+            valorizzato nella richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o
+            eventuali segnalazioni da processo ricariche
+      additionalProperties: false      
+    CheckGridProductGrid:
+      type: object
+      description: Dettaglio controlli di griglia x prodotti-griglie
+      required:
+        - checkMaxPlafondCFClientDay
+        - checkMaxPlafondCFProspectDay
+        - checkMaxPlafondCFClientMonth
+        - checkMaxPlafondCFProspectMonth
+        - checkMaxOperationCDC
+        - checkMaxOperationPayPal
+        - checkMaxCFClientCDCDay
+        - checkMaxCFProspectCDCDay
+        - checkMaxCFClientCDCMonth
+        - checkMaxCFProspectCDCMonth
+        - checkMaxOperationOKKOCFDay
+        - checkMaxOperationOKKOCFMonth
+        - checkMaxOperationOKKOEmailDay
+        - checkMaxOperationOKKOEmailMonth
+        - checkMaxOperationOKKOShippingAddressDay
+        - checkMaxOperationOKKOShippingAddressMonth
+        - checkMaxCFPayPalDay
+        - checkMaxCFPayPalMonth
+        - checkCDCForeigner
+        - checkCDCPrepaid
+      properties:
+        checkMaxPlafondCFClientDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Plafond Max € stesso CF Cliente al giorno,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFProspectDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Plafond Max € stesso CF Prospect al giorno,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFClientMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Plafond Max € stesso CF Cliente al mese, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxPlafondCFProspectMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Plafond Max € stesso CF Prospect al mese, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationCDC:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationPayPal:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni stessa PayPal, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFClientCDCDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max CF Cliente al giorno stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFProspectCDCDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max CF Prospect al giorno stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFClientCDCMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max CF Cliente al mese stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFProspectCDCMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max CF Prospect al mese stessa CdC, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOCFDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al giorno stesso CF, applicato
+            sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOCFMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al mese stesso CF, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOEmailDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al giorno stessa email,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOEmailMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al mese stessa email,
+            applicato sul corrispondente campo valorizzato nella richiesta
+        checkMaxOperationOKKOShippingAddressDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max operazioni OK/KO al giorno stesso indirizzo
+            spedizione, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxOperationOKKOShippingAddressMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in 
+            funzione del Max operazioni OK/KO al mese stesso indirizzo
+            spedizione, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkMaxCFPayPalDay:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max CF al giorno stessa PayPal, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkMaxCFPayPalMonth:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in
+            funzione del Max CF al mese stessa PayPal, applicato sul
+            corrispondente campo valorizzato nella richiesta
+        checkCDCForeigner:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in funzione
+            CdC estera, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        checkCDCPrepaid:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito del controllo di griglia su Prodotti Item in funzione
+            CdC Prepagate, applicato sul corrispondente campo valorizzato nella
+            richiesta
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo offerte
+      additionalProperties: false
+    CheckAdvanceRiskNotifResponse:
+      type: object
+      description: Caratterizzazione anticipo dei controlli RISK
+      properties:
+        eventCode:
+          type: string
+          minLength: 1
+          description: >- 
+            E’ il codice (RCA_ID) che su FMSRISK identifica univocamente
+            l’evento lavorato
+        forcingOl:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Indica che, dopo applicazione leve, deve obbligatoriamente essere
+            inviato successivamente a Risk Convergente l’OL per completamento
+            Detection frodi
+        checkFraud:
+          type: string
+          minLength: 1
+          description: Riporta l’esito complessivo dei controlli di tipo Frodi
+        checkMef:
+          type: string
+          minLength: 1
+          description: Indica se l’identificativo del documento fornito non è valido
+        checkCredit:
+          type: string
+          minLength: 1
+          description: Indica l’esito globale della verifica Credito
+        checkGroupLev:
+          $ref: '#/components/schemas/CheckGroupLev'
+        bill:
+          $ref: '#/components/schemas/BillForResponse'
+        notes:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo
+      additionalProperties: false
+    CheckGroupLev:
+      type: object
+      description: Gruppo leve
+      properties:
+        checkGroupLevContainer:
+          $ref: '#/components/schemas/CheckGroupLevContainer'
+      additionalProperties: false
+    CheckGroupLevContainer:
+      type: array
+      description: Contenitore dei gruppi leve Frodi/Credito
+      minItems: 0
+      items:
+        properties:
+          checkGroupLevComponent:
+            $ref: '#/components/schemas/CheckGroupLevComponent'
+        additionalProperties: false
+    CheckGroupLevComponent:
+      type: object
+      description: dettaglio dei gruppi leve Frodi/Credito
+      properties:
+        groupId:
+          type: string
+          minLength: 1
+          description: Identificativo del gruppo di leve
+        checkLevContainer:
+          $ref: '#/components/schemas/CheckLevContainer'
+      additionalProperties: false
+    CheckLevContainer:
+      type: array
+      description: Contenitore macro leve Frodi/Credito
+      minItems: 0
+      items:
+        properties:
+          checkLevComponent:
+            $ref: '#/components/schemas/CheckLevComponent'
+        additionalProperties: false
+    CheckLevComponent:
+      type: object
+      description: Dettaglio macro leve Frodi/Credito
+      properties:
+        version:
+          type: string
+          minLength: 1
+          description: Versione delle leve
+        score:
+          type: string
+          minLength: 1
+          description: Score delle leve
+        checkLeverContainer:
+          $ref: '#/components/schemas/CheckLeverContainer'
+      additionalProperties: false
+    CheckLeverContainer:
+      type: array
+      description: Contenitore delle leve Frodi/Credito
+      minItems: 0
+      items:
+        properties:
+          checkLeverComponent:
+            $ref: '#/components/schemas/CheckLeverComponent'
+        additionalProperties: false
+    CheckLeverComponent:
+      type: object
+      required:
+        - name
+      description: Dettaglio delle leve Frodi/Credito
+      properties:
+        leverType:
+          type: string
+          minLength: 1
+          description: Tipologia della leva da applicare
+        name:
+          type: string
+          minLength: 1
+          description: Nome della leva da applicare
+        active:
+          type: string
+          minLength: 1
+          description: Indica l’attivazione o meno della leva
+        value:
+          type: string
+          minLength: 1
+          description: Valore della leva da applicare
+        expDate:
+          type: string
+          minLength: 1
+          description: Numero di giorni entro i quali la leva deve essere adempiuta
+      additionalProperties: false
+    BillForResponse:
+      type: object
+      description: Contenitore delle bollette insolute
+      properties:
+        aggregationId:
+          type: string
+          minLength: 1
+          description: Codice aggregazione fatture
+        billContainer:
+          $ref: '#/components/schemas/BillForResponseContainer'
+      additionalProperties: false
+    BillForResponseContainer:
+      type: array
+      description: Contenitore delle bollette insolute
+      minItems: 0
+      items:
+        properties:
+          billComponent:
+            $ref: '#/components/schemas/BillForResponseComponent'
+        additionalProperties: false
+    BillForResponseComponent:
+      type: object
+      description: Dettaglio delle bollette insolute
+      properties:
+        phonePrefix:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 2
+          maxLength: 4
+          description: Distretto della linea telefonica 
+        phoneNumber:
+          type: string
+          pattern: '^[0-9]*$'
+          minLength: 1
+          maxLength: 8
+          description: Numero della Linea telefonica
+        billNumber:
+          type: string
+          minLength: 1
+          description: Numero della fattura
+        billType:
+          type: string
+          minLength: 1
+          description: Tipo fatturazione
+        billPeriod:
+          type: string
+          minLength: 1
+          description: Periodo di fatturazione
+        billProg:
+          type: string
+          minLength: 1
+          description: Progressivo bolletta
+        dateOfIssue:
+          type: string
+          description: Data di emissione della fattura - formato data yyyy-MM-dd
+          format: date
+        remainingAmount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: false
+          description: Credito residuo fattura
+        coverageAmount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: false
+          description: Importo pagamento spalmato per la singola fattura
+      additionalProperties: false
+    CheckFraudNotifResponse:
+      type: object
+      description: Dettaglio gruppo controlli
+      required:
+        - checkForMobileBusinessFraud
+        - checkForMobileConsumerFraud
+        - checkForWirelineFraud
+        - checkForMNPBusiness
+        - checkForMNPConsumer
+        - checkForCreditCard
+        - checkForSogei
+        - checkForDocument
+        - checkForBin
+        - checkForPhoneNumRecharge
+        - checkForShippingAddress
+        - checkForIban
+        - checkForAll
+      properties:
+        checkForMobileBusinessFraud:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForMobileConsumerFraud:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForWirelineFraud:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForMNPBusiness:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForMNPConsumer:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForCreditCard:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForSogei:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Check che verifica se un Codice Fiscale è certificato Sogei
+        checkForDocument:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForBin:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForPhoneNumRecharge:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForShippingAddress:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForIban:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Identifica l’esito dei controlli di lista, applicati sul
+            corrispondente campo valorizzato nella richiesta
+        checkForAll:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Check riassuntivo dei controlli applicati. Vale 1, se almeno uno
+            dei controlli “standard” precedenti è flaggato a 1
+        suspect:
+          $ref: '#/components/schemas/Suspect'
+        notes:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo
+      additionalProperties: false
+    Suspect:
+      type: object
+      description: Dettaglio gruppo controlli sospetti
+      required:
+        - checkForCustomer
+        - checkForCreditCard
+        - checkForCustomerDiscaimed
+        - checkForBin
+        - checkForDocument
+        - checkForIban
+        - checkForAll
+      properties:
+        checkForCustomer:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo alla BL codici fiscali a rischio
+        checkForCreditCard:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo alla BL carte di credito a rischio
+        checkForCustomerDiscaimed:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo alla BL codici fiscali disconoscimenti contrattuali
+        checkForBin:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo alla BL BIN a rischio
+        checkForDocument:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo alla BL Documento a rischio
+        checkForIban:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo alla BL IBAN a rischio
+        checkForAll:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >-
+            Check BL Rischio All. Vale 1, se almeno uno dei controlli
+            “sospetti” precedenti è flaggato a 1
+      additionalProperties: false
+    CheckCreditNotifResponse:
+      type: object
+      description: Dettaglio controlli Credito
+      required:
+        - checkForAlreadyBad
+      properties:
+        checkForAlreadyBad:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: >- 
+            Check relativo alla verifica morosità interne alla data e sullo
+            score andamentale
+        eventCode:
+          type: string
+          minLength: 1
+          description: >- 
+            E’ il codice (RCA_ID) che su FRMSRISK identifica univocamente
+            l’evento su cui è stato fornito KO
+        notes:
+          type: string
+          minLength: 1
+          maxLength: 70
+          description: >-
+            Contiene la valorizzazione impostata nei controlli formali o      
+            eventuali segnalazioni da processo
+      additionalProperties: false
+    CheckDfcNotifResponse:
+      type: object
+      description: nuovi controlli antifrode DFC
+      properties:
+        checkDfcContainer:
+          $ref: '#/components/schemas/CheckDfcContainer'
+      additionalProperties: false
+    CheckDfcContainer:
+      type: array
+      description: Contenitore dei nuovi controlli antifrode DFC
+      minItems: 1
+      items:
+        properties:
+          checkDfcComponent:
+            $ref: '#/components/schemas/CheckDfcComponent'
+        additionalProperties: false
+    CheckDfcComponent:
+      type: object
+      required:
+        - checkName
+      description: Dettaglio dei nuovi controlli antifrode DFC
+      properties:
+        checkMacroFamily:
+          type: string
+          minLength: 1
+          description: Contiene la macro famiglia dei check antifrode
+        checkFamily:
+          type: string
+          minLength: 1
+          description: Contiene la famiglia dei check antifrode
+        checkSubFamily:
+          type: string
+          minLength: 1
+          description: Contiene la sotto famiglia dei check antifrode
+        checkName:
+          type: string
+          minLength: 1
+          description: >-
+            Identifica il nome del tag a cui si riferisce l’esito del controllo
+            antifrode applicato (nuove griglie, controlli esterni …)
+        checkValue:
+          type: string
+          minLength: 1
+          description: >-
+            Identifica l’esito del controllo antifrode applicato (nuove griglie,
+            controlli esterni …)
+      additionalProperties: false
+    BillingAccountForNotifResponse:
+      type: object
+      anyOf:
+        - required:
+            - creditCard
+        - required:
+            - payPal
+        - required:
+            - satisPay
+      description: Caratterizzazione della modalità di acquisto
+      properties:
+        creditCard:
+          $ref: '#/components/schemas/CreditCardForResponse'
+        payPal:
+          $ref: '#/components/schemas/PayPalResponse'
+        satisPay:
+          $ref: '#/components/schemas/SatisPayResponse'
+      additionalProperties: false
+    CreditCardForResponse:
+      type: object
+      required:
+        - mdpKey
+      description: Caratterizzazione della CdC
+      properties:
+        mdpKey:
+          type: string
+          minLength: 1
+          description: Modalità di Pagamento Key (trascodifica della CdC)
+        cardPrepaid:
+          type: string
+          nullable: true
+          pattern: '^[NYny]*$'
+          maxLength: 1
+          description: Tipologia della carta prepagata od altro
+        cardPrepaidBrandTIM:
+          type: string
+          nullable: true
+          pattern: '^[NYny]*$'
+          maxLength: 1
+          description: Tipologia della carta prepagata brandizzata TIM
+        regionCode:
+          type: string
+          nullable: true
+          pattern: '^[IEie]*$'
+          maxLength: 1
+          description: Flag che identifica la nazionalità della CdC utilizzata
+        cardBrand:
+          type: string
+          minLength: 0
+          description: Circuito di riferimento della CdC
+        maskedPan:
+          type: string
+          description: Pan mascherato con cifre in chiaro e altri ad *
+        expiryDateCdc:
+          type: string
+          pattern: '^$|^[0-9]{4}$'
+          description: Data di scadenza CdC, formato AAMM
+        holder:
+          type: string
+          minLength: 1
+          description: Intestatario della Cdc
+      additionalProperties: false
+    PayPalResponse:
+      type: object
+      required:
+        - idPayPal
+      description: Caratterizzazione del pagamento tramite PayPal 
+      properties:
+        idPayPal:
+          type: string
+          minLength: 1
+          description: Identificativo di pagamento tramite PayPal
+      additionalProperties: false
+    SatisPayResponse:
+      type: object
+      required:
+        - idSatisPay
+      description: Caratterizzazione del pagamento tramite SatisPay 
+      properties:
+        idSatisPay:
+          type: string
+          minLength: 1
+          description: Identificativo di pagamento tramite SatisPay
+      additionalProperties: false
+    CreditForNotifResponse:
+      type: object
+      description: Caratterizzazione della risposta sul fido
+      required:
+        - returnCode
+        - creditAmount
+        - notes
+        - checkFido
+      properties:
+        returnCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: Codice esito operazione di fido
+        creditAmount:
+          type: number
+          minimum: 0
+          description: Importo del fido rimodulato a disposizione del cliente
+        notes:
+          type: string
+          minLength: 0
+          maxLength: 70
+          description: Contiene le note sul credito elaborato
+        checkFido:
+          type: string
+          minLength: 1
+          maxLength: 1
+          description: Check relativo al fido
+      additionalProperties: false      
+    ErrorMessage:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+        - errorSourceSystem
+      description: dati che caratterizzano il messaggio di errore in caso di 4XX e 5XX
+      properties:
+        code:
+          type: string
+          description: >-
+            Contiene il codice di errore generato dall'applicazione. Qualora non
+            applicabile il campo verrà valorizzato a stringa vuota. 
+        message:
+          type: string
+          description: 'dettaglio dell''errore '
+        timestamp:
+          type: string
+          description: data-ora in formato date-time UTC in cui è avvenuto l'errore
+          format: date-time
+        errorSourceSystem:
+          type: string
+          description: >-
+            E' il nome dell'applicazione che ha generato l'errore. Viene
+            valorizzato a FASTDATA nei casi in cui sia stato il microservizio a
+            restituire la Response di errore. Ad \"APIGW\" nel caso in cui
+            l'errore sia stato generato dall'APIGW. A \"LEGACY\" nel caso di
+            servizi Passthrough in cui l'errore è stato generato dal sistema
+            invocato dall'APIGW o in caso in cui l'errore è stato generato dal
+            sistema legacy chiamato in fallback
+        moreInfo:
+          type: string
+          description: >-
+            E' un campo che contiene ulteriori informazioni sull'errore come per
+            esempio il link ad una pagina web
+        userMessage:
+          type: string
+          description: >-
+            Contiene un eventuale messaggio utente
